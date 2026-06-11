@@ -461,7 +461,7 @@ export default function AdminDashboard() {
         <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
           <div>
             <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-              <Link href="/" className="hover:text-amber-500 transition cursor-pointer">
+              <Link href="/admin" className="hover:text-amber-500 transition cursor-pointer">
                 The Barber Shop
               </Link>
               <Badge className="bg-amber-600 hover:bg-amber-700 text-white border-0 text-[10px] py-0">ADMIN</Badge>
