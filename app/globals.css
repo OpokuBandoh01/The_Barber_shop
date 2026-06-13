@@ -228,3 +228,9 @@
 .light .hover\:border-slate-700:hover {
   border-color: #cbd5e1 !important;
 }
+
+/* Hide native browser password reveal button on Windows (Edge / IE) */
+input[type="password"]::-ms-reveal,
+input[type="password"]::-ms-clear {
+  display: none;
+}

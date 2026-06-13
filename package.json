@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "reset-admin": "npx tsx --env-file=.env scripts/reset-password.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.1",

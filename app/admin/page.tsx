@@ -9,20 +9,21 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
-import { 
-  Trash2, Plus, Edit2, Save, X, TrendingUp, Calendar, Clock, Scissors, 
+import {
+  Trash2, Plus, Edit2, Save, X, TrendingUp, Calendar, Clock, Scissors,
   DollarSign, Users, CheckCircle, AlertTriangle, HelpCircle, UserPlus, LogOut
 } from 'lucide-react'
-import { 
-  seedLocalStorage, defaultServices, defaultTimeSlots, type Booking, type Service 
+import {
+  seedLocalStorage, defaultServices, defaultTimeSlots, type Booking, type Service
 } from '@/lib/mock-data'
-import { 
-  ResponsiveContainer, AreaChart, Area, BarChart, Bar, XAxis, YAxis, 
-  CartesianGrid, Tooltip, Legend, PieChart, Pie, Cell 
+import {
+  ResponsiveContainer, AreaChart, Area, BarChart, Bar, XAxis, YAxis,
+  CartesianGrid, Tooltip, Legend, PieChart, Pie, Cell
 } from 'recharts'
 
 export default function AdminDashboard() {
   const [mounted, setMounted] = useState(false)
+  const [adminName, setAdminName] = useState('Admin')
   const [selectedDate, setSelectedDate] = useState(() => {
     const today = new Date()
     const yyyy = today.getFullYear()
@@ -106,6 +107,18 @@ export default function AdminDashboard() {
   useEffect(() => {
     fetchData()
     setMounted(true)
+
+    // Helper to read cookies client-side
+    const getCookie = (name: string) => {
+      if (typeof document === 'undefined') return ''
+      const value = `; ${document.cookie}`
+      const parts = value.split(`; ${name}=`)
+      if (parts.length === 2) return decodeURIComponent(parts.pop()?.split(';').shift() || '')
+      return ''
+    }
+
+    const name = getCookie('admin_name')
+    if (name) setAdminName(name)
 
     const interval = setInterval(fetchData, 15000)
     return () => clearInterval(interval)
@@ -368,7 +381,7 @@ export default function AdminDashboard() {
   // Overall statistics
   const totalBookingsCount = analyticsScope === 'month' ? juneBookings.length : dateBookings.length
   const activeBookingsCount = analyticsScope === 'month' ? juneActiveBookings.length : activeBookings.length
-  
+
   const revenue = (analyticsScope === 'month' ? juneBookings : dateBookings)
     .filter(b => b.status === 'Completed' || b.status === 'Confirmed')
     .reduce((sum, b) => sum + getBookingPrice(b.service), 0)
@@ -397,7 +410,7 @@ export default function AdminDashboard() {
     const dayRevenue = dayBookings
       .filter(b => b.status === 'Completed' || b.status === 'Confirmed')
       .reduce((sum, b) => sum + getBookingPrice(b.service), 0)
-    
+
     return {
       day: `June ${day}`,
       Revenue: dayRevenue,
@@ -469,6 +482,11 @@ export default function AdminDashboard() {
             <p className="text-slate-400 text-xs hidden sm:block">Dynamic Control and Business Insights</p>
           </div>
           <div className="flex gap-2 sm:gap-3 items-center">
+            {adminName && (
+              <span className="text-slate-300 text-xs sm:text-sm font-medium mr-1.5 sm:mr-2">
+                Welcome, <span className="text-amber-500 font-semibold">{adminName.split(' ')[0]}</span>
+              </span>
+            )}
             <ThemeToggle />
             <Button
               onClick={handleLogout}
@@ -483,7 +501,7 @@ export default function AdminDashboard() {
 
       <div className="max-w-7xl mx-auto px-4 py-8">
         <Tabs defaultValue="analytics" className="space-y-6">
-          
+
           {/* Tab Selection */}
           <div className="flex flex-col md:flex-row md:items-center justify-between border-b border-slate-800 pb-4 gap-4">
             <TabsList className="bg-slate-800/80 border border-slate-700 p-1 flex flex-col sm:flex-row w-full sm:w-auto h-auto sm:h-10 gap-1 sm:gap-0">
@@ -524,16 +542,16 @@ export default function AdminDashboard() {
                 </p>
               </div>
               <div className="flex gap-2 w-full sm:w-auto">
-                <Button 
-                  onClick={() => setAnalyticsScope('day')} 
+                <Button
+                  onClick={() => setAnalyticsScope('day')}
                   variant={analyticsScope === 'day' ? 'default' : 'outline'}
                   className={`flex-1 sm:flex-none ${analyticsScope === 'day' ? 'bg-amber-600 hover:bg-amber-700' : 'border-slate-700 text-white'}`}
                   size="sm"
                 >
                   Day View
                 </Button>
-                <Button 
-                  onClick={() => setAnalyticsScope('month')} 
+                <Button
+                  onClick={() => setAnalyticsScope('month')}
                   variant={analyticsScope === 'month' ? 'default' : 'outline'}
                   className={`flex-1 sm:flex-none ${analyticsScope === 'month' ? 'bg-amber-600 hover:bg-amber-700' : 'border-slate-700 text-white'}`}
                   size="sm"
@@ -616,7 +634,7 @@ export default function AdminDashboard() {
 
             {/* Charts Section */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              
+
               {/* Daily Revenue Progress (Span 2 columns if month view) */}
               <Card className={`bg-slate-800 border-slate-700 shadow-xl lg:col-span-2 ${analyticsScope !== 'month' && 'opacity-50 pointer-events-none'}`}>
                 <CardHeader>
@@ -630,8 +648,8 @@ export default function AdminDashboard() {
                     <AreaChart data={chartDailyData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                       <defs>
                         <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#10b981" stopOpacity={0.4}/>
-                          <stop offset="95%" stopColor="#10b981" stopOpacity={0.0}/>
+                          <stop offset="5%" stopColor="#10b981" stopOpacity={0.4} />
+                          <stop offset="95%" stopColor="#10b981" stopOpacity={0.0} />
                         </linearGradient>
                       </defs>
                       <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
@@ -712,7 +730,7 @@ export default function AdminDashboard() {
 
           {/* TAB 2: MANAGE BOOKINGS */}
           <TabsContent value="bookings" className="grid grid-cols-1 lg:grid-cols-3 gap-6 outline-none">
-            
+
             {/* Bookings List (Col Span 2) */}
             <div className="lg:col-span-2 space-y-4">
               <Card className="bg-slate-800 border-slate-700 shadow-xl">
@@ -748,13 +766,13 @@ export default function AdminDashboard() {
                               <span className="bg-slate-800 text-amber-500 font-bold px-2.5 py-1 rounded text-center min-w-[75px] border border-slate-700">
                                 {booking.time}
                               </span>
-                              
+
                               {/* Mobile-only status badge */}
                               <span className={`text-[10px] px-2 py-0.5 rounded font-semibold sm:hidden ${getStatusColor(booking.status)}`}>
                                 {booking.status}
                               </span>
                             </div>
-                            
+
                             {/* Customer & Service Info */}
                             <div className="min-w-0 flex-1 space-y-1">
                               <div className="flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-2 flex-wrap">
@@ -774,7 +792,7 @@ export default function AdminDashboard() {
                                 )}
                               </p>
                             </div>
-                            
+
                             {/* Desktop-only status badge */}
                             <span className={`text-[10px] px-2 py-0.5 rounded font-semibold hidden sm:inline shrink-0 ${getStatusColor(booking.status)}`}>
                               {booking.status}
@@ -835,7 +853,7 @@ export default function AdminDashboard() {
                       ✓ Walk-in booking confirmed successfully!
                     </div>
                   )}
-                  
+
                   <form onSubmit={handleAddWalkin} className="space-y-4">
                     <div>
                       <label className="text-xs text-slate-300 block mb-1.5 font-medium">Customer Name</label>
@@ -927,7 +945,7 @@ export default function AdminDashboard() {
 
           {/* TAB 3: SHOP SETTINGS */}
           <TabsContent value="settings" className="grid grid-cols-1 lg:grid-cols-3 gap-6 outline-none">
-            
+
             {/* Left Col: Slot capacity and Time slots */}
             <div className="lg:col-span-1 space-y-6">
               {/* Capacity Config */}
@@ -989,8 +1007,8 @@ export default function AdminDashboard() {
                     {timeSlots.map(t => (
                       <Badge key={t} className="bg-slate-800 text-slate-300 hover:bg-slate-700 border border-slate-700 flex items-center gap-1.5 py-1 text-xs">
                         {t}
-                        <X 
-                          className="w-3 h-3 text-slate-500 hover:text-rose-400 cursor-pointer shrink-0" 
+                        <X
+                          className="w-3 h-3 text-slate-500 hover:text-rose-400 cursor-pointer shrink-0"
                           onClick={() => handleDeleteTimeSlot(t)}
                         />
                       </Badge>
@@ -1026,7 +1044,7 @@ export default function AdminDashboard() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  
+
                   {/* Service lists */}
                   <div className="space-y-3 max-h-[420px] overflow-y-auto pr-1">
                     {services.map(s => (
@@ -1037,17 +1055,17 @@ export default function AdminDashboard() {
                             <span className="text-emerald-400 font-bold text-xs">GH₵{s.price}</span>
                           </div>
                           <div className="flex gap-1.5">
-                            <Button 
-                              size="icon" 
-                              variant="ghost" 
+                            <Button
+                              size="icon"
+                              variant="ghost"
                               className="h-7 w-7 text-slate-400 hover:text-amber-500 hover:bg-amber-950/20"
                               onClick={() => setServiceForm({ ...s, isEditing: true })}
                             >
                               <Edit2 className="w-3.5 h-3.5" />
                             </Button>
-                            <Button 
-                              size="icon" 
-                              variant="ghost" 
+                            <Button
+                              size="icon"
+                              variant="ghost"
                               className="h-7 w-7 text-slate-400 hover:text-rose-400 hover:bg-rose-950/20"
                               onClick={() => handleDeleteService(s.id)}
                             >

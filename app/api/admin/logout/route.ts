@@ -6,5 +6,9 @@ export async function POST() {
     path: '/',
     maxAge: 0,
   })
+  response.cookies.set('admin_name', '', {
+    path: '/',
+    maxAge: 0,
+  })
   return response
 }
