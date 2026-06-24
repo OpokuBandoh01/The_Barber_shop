@@ -49,6 +49,7 @@ export default function AdminDashboard() {
     notes: ''
   })
   const [walkinSuccess, setWalkinSuccess] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
 
   // Settings states
   const [allocDate, setAllocDate] = useState(() => {
@@ -355,7 +356,21 @@ export default function AdminDashboard() {
   const activeBookings = dateBookings.filter(b => b.status !== 'Cancelled')
   const usedSlots = activeBookings.length
   const availableSlots = Math.max(0, totalCapacity - usedSlots)
-  const occupancyRate = Math.round((usedSlots / totalCapacity) * 100)
+  const occupancyRate = totalCapacity > 0 ? Math.round((usedSlots / totalCapacity) * 100) : 0
+
+  // Filtered bookings list for display in the dashboard
+  const displayedBookings = dateBookings.filter(b => {
+    if (!searchQuery) return true
+    const query = searchQuery.toLowerCase().trim()
+    const ticketId = `#bk-${b.id}`
+    return (
+      b.name.toLowerCase().includes(query) ||
+      b.phone.toLowerCase().includes(query) ||
+      (b.email && b.email.toLowerCase().includes(query)) ||
+      ticketId.includes(query) ||
+      (b.paymentReference && b.paymentReference.toLowerCase().includes(query))
+    )
+  })
 
   // Status Styling
   const getStatusColor = (status: Booking['status']) => {
@@ -731,19 +746,26 @@ export default function AdminDashboard() {
           {/* TAB 2: MANAGE BOOKINGS */}
           <TabsContent value="bookings" className="grid grid-cols-1 lg:grid-cols-3 gap-6 outline-none">
 
-            {/* Bookings List (Col Span 2) */}
             <div className="lg:col-span-2 space-y-4">
               <Card className="bg-slate-800 border-slate-700 shadow-xl">
                 <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 gap-3">
-                  <div>
+                  <div className="space-y-1 flex-1">
                     <CardTitle className="text-lg">Appointments for {selectedDate}</CardTitle>
                     <CardDescription className="text-slate-400 text-xs">
                       Daily Capacity: {totalCapacity} slots | Occupancy: {occupancyRate}%
                     </CardDescription>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Badge className="bg-slate-700/80 text-slate-200 border-0">{activeBookings.length} Active</Badge>
-                    <Badge className="bg-slate-700/50 text-slate-400 border-0">{dateBookings.length - activeBookings.length} Cancelled</Badge>
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 shrink-0">
+                    <Input
+                      placeholder="Search name, phone, ID..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="bg-slate-700 border-slate-600 text-white h-8 text-xs placeholder:text-slate-500 w-full sm:w-44 focus-visible:ring-amber-500"
+                    />
+                    <div className="flex items-center gap-2 self-end sm:self-auto">
+                      <Badge className="bg-slate-700/80 text-slate-200 border-0">{activeBookings.length} Active</Badge>
+                      <Badge className="bg-slate-700/50 text-slate-400 border-0">{dateBookings.length - activeBookings.length} Cancelled</Badge>
+                    </div>
                   </div>
                 </CardHeader>
                 <CardContent>
@@ -753,9 +775,15 @@ export default function AdminDashboard() {
                       <p className="text-slate-400 text-sm font-semibold">No bookings scheduled for this date</p>
                       <p className="text-slate-500 text-xs mt-1">Select a new date, or add a walk-in booking on the right.</p>
                     </div>
+                  ) : displayedBookings.length === 0 ? (
+                    <div className="text-center py-12 border-2 border-dashed border-slate-700 rounded-lg">
+                      <AlertTriangle className="w-8 h-8 mx-auto text-slate-500 mb-3" />
+                      <p className="text-slate-400 text-sm font-semibold">No appointments match your search</p>
+                      <p className="text-slate-500 text-xs mt-1">Try checking your spelling or search query.</p>
+                    </div>
                   ) : (
                     <div className="space-y-2.5">
-                      {dateBookings.map((booking) => (
+                      {displayedBookings.map((booking) => (
                         <div
                           key={booking.id}
                           className="p-3.5 rounded-lg bg-slate-900/30 border border-slate-700/80 flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs"
@@ -766,16 +794,19 @@ export default function AdminDashboard() {
                               <span className="bg-slate-800 text-amber-500 font-bold px-2.5 py-1 rounded text-center min-w-[75px] border border-slate-700">
                                 {booking.time}
                               </span>
-
+ 
                               {/* Mobile-only status badge */}
                               <span className={`text-[10px] px-2 py-0.5 rounded font-semibold sm:hidden ${getStatusColor(booking.status)}`}>
                                 {booking.status}
                               </span>
                             </div>
-
+ 
                             {/* Customer & Service Info */}
                             <div className="min-w-0 flex-1 space-y-1">
                               <div className="flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-2 flex-wrap">
+                                <span className="inline-block bg-slate-800 text-amber-500 font-mono font-bold px-1.5 py-0.5 rounded border border-slate-700 text-[10px] shrink-0">
+                                  #BK-{booking.id}
+                                </span>
                                 <span className="text-white font-bold text-sm sm:text-xs truncate">{booking.name}</span>
                                 <span className="text-slate-500 hidden sm:inline">•</span>
                                 <span className="text-slate-400 font-mono">{booking.phone}</span>

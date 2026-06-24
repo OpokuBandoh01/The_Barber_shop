@@ -28,6 +28,7 @@ export default function BookingsPage() {
     notes: '',
   })
   const [submitted, setSubmitted] = useState(false)
+  const [confirmedBooking, setConfirmedBooking] = useState<Booking | null>(null)
 
   // Local storage states
   const [bookings, setBookings] = useState<Booking[]>([])
@@ -173,12 +174,7 @@ export default function BookingsPage() {
       if (res.ok) {
         const newBooking = await res.json()
         setBookings(prev => [...prev, newBooking])
-        setSubmitted(true)
-        setTimeout(() => {
-          setSelectedDate(null)
-          setFormData({ name: '', phone: '', email: '', time: '', service: '', notes: '' })
-          setSubmitted(false)
-        }, 2000)
+        setConfirmedBooking(newBooking)
       } else {
         const errData = await res.json()
         alert(errData.error || 'Failed to submit booking')
@@ -209,11 +205,17 @@ export default function BookingsPage() {
   // Get time slots that are already booked for the selected date
   const bookedTimes = selectedDate
     ? bookings
-        .filter(b => b.date === selectedDate && b.status !== 'Cancelled')
-        .map(b => b.time)
+      .filter(b => b.date === selectedDate && b.status !== 'Cancelled')
+      .map(b => b.time)
     : []
 
   const availableTimeSlots = timeSlots.filter(slot => !bookedTimes.includes(slot))
+
+  const handlePrint = () => {
+    if (typeof window !== 'undefined') {
+      window.print()
+    }
+  }
 
   if (!mounted) {
     return (
@@ -243,12 +245,232 @@ export default function BookingsPage() {
       </nav>
 
       <div className="max-w-6xl mx-auto px-4 py-12">
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold text-white mb-3">Book Your Appointment</h1>
-          <p className="text-slate-400">Select a date to check availability, then fill in your details</p>
-        </div>
+        {!confirmedBooking && (
+          <div className="mb-8">
+            <h1 className="text-4xl font-bold text-white mb-3">Book Your Appointment</h1>
+            <p className="text-slate-400">Select a date to check availability, then fill in your details</p>
+          </div>
+        )}
 
-        {!selectedDate ? (
+        {confirmedBooking ? (
+          // Ticket View
+          <div className="max-w-md mx-auto my-4">
+            <style dangerouslySetInnerHTML={{
+              __html: `
+              @media print {
+                body * {
+                  visibility: hidden;
+                }
+                #booking-ticket-card, #booking-ticket-card * {
+                  visibility: visible;
+                }
+                #booking-ticket-card {
+                  position: absolute;
+                  left: 0;
+                  top: 0;
+                  width: 100%;
+                  box-shadow: none;
+                  border: none;
+                  background: white !important;
+                  color: black !important;
+                }
+                .no-print {
+                  display: none !important;
+                }
+              }
+            `}} />
+
+            <div className="text-center mb-6">
+              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 mb-4 animate-pulse">
+                <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <h2 className="text-3xl font-bold text-white mb-2">Booking Confirmed!</h2>
+              <p className="text-slate-400 text-sm">
+                Your appointment is locked in. Please screenshot or print this ticket for check-in.
+              </p>
+            </div>
+
+            {/* Ticket Card */}
+            <div
+              id="booking-ticket-card"
+              className="bg-slate-800 border border-slate-700 rounded-2xl shadow-2xl overflow-hidden relative text-slate-100"
+            >
+              {/* Top notch styling */}
+              <div className="bg-amber-600 h-2 w-full" />
+
+              {/* Main Ticket Content */}
+              <div className="p-6">
+                {/* Header */}
+                <div className="flex justify-between items-start border-b border-slate-700/60 pb-4 mb-4">
+                  <div>
+                    <h3 className="text-amber-500 font-extrabold text-lg tracking-wider">THE BARBER SHOP</h3>
+                    <p className="text-xs text-slate-400 font-medium">APPOINTMENT TICKET</p>
+                  </div>
+                  <div className="text-right">
+                    <span className="inline-block px-2.5 py-1 rounded-md text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 uppercase tracking-wider">
+                      PAID
+                    </span>
+                  </div>
+                </div>
+
+                {/* Ticket Details */}
+                <div className="space-y-4 font-sans">
+                  <div>
+                    <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Customer Name</span>
+                    <p className="text-base font-bold text-white mt-0.5">{confirmedBooking.name}</p>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Phone</span>
+                      <p className="text-sm font-semibold text-slate-200 mt-0.5">{confirmedBooking.phone}</p>
+                    </div>
+                    <div>
+                      <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Email</span>
+                      <p className="text-sm font-semibold text-slate-200 mt-0.5 truncate">{confirmedBooking.email || 'N/A'}</p>
+                    </div>
+                  </div>
+
+                  <div className="border-t border-slate-700/40 pt-4">
+                    <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Service Selected</span>
+                    <div className="flex justify-between items-baseline mt-0.5">
+                      <p className="text-base font-bold text-white">
+                        {services.find(s => s.id === confirmedBooking.service)?.name || confirmedBooking.service}
+                      </p>
+                      <p className="text-amber-500 font-bold text-base">
+                        GH₵ {services.find(s => s.id === confirmedBooking.service)?.price || '0.00'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Dotted Tear Line with side punch holes */}
+                <div className="relative border-t border-dashed border-slate-600/70 my-6">
+                  {/* Left hole */}
+                  <div className="absolute -left-8 -top-2 w-4 h-4 bg-slate-900 rounded-full border border-slate-700/50" />
+                  {/* Right hole */}
+                  <div className="absolute -right-8 -top-2 w-4 h-4 bg-slate-900 rounded-full border border-slate-700/50" />
+                </div>
+
+                {/* Bottom Ticket details */}
+                <div className="space-y-4 font-sans">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Appointment Date</span>
+                      <p className="text-sm font-bold text-white mt-0.5">
+                        {new Date(confirmedBooking.date).toLocaleDateString('en-US', {
+                          weekday: 'short',
+                          year: 'numeric',
+                          month: 'short',
+                          day: 'numeric'
+                        })}
+                      </p>
+                    </div>
+                    <div>
+                      <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Time Slot</span>
+                      <p className="text-sm font-bold text-white mt-0.5 flex items-center gap-1.5">
+                        <svg className="w-3.5 h-3.5 text-amber-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        {confirmedBooking.time}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Ticket ID</span>
+                      <p className="text-xs font-mono text-slate-400 mt-0.5">#BK-{confirmedBooking.id}</p>
+                    </div>
+                    <div>
+                      <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Payment Ref</span>
+                      <p className="text-xs font-mono text-slate-400 mt-0.5 truncate" title={confirmedBooking.paymentReference}>
+                        {confirmedBooking.paymentReference || 'walk-in'}
+                      </p>
+                    </div>
+                  </div>
+
+                  {confirmedBooking.notes && (
+                    <div className="bg-slate-900/40 p-2.5 rounded-lg border border-slate-700/30 text-xs">
+                      <span className="font-semibold text-slate-400 block mb-0.5">Notes:</span>
+                      <span className="text-slate-300 italic">"{confirmedBooking.notes}"</span>
+                    </div>
+                  )}
+
+                  {/* Barcode SVG */}
+                  <div className="pt-2 text-center">
+                    <svg className="w-full h-12 text-slate-400 mx-auto opacity-75 mt-2" viewBox="0 0 100 20" fill="currentColor">
+                      <rect x="0" y="0" width="1" height="20" />
+                      <rect x="2" y="0" width="2" height="20" />
+                      <rect x="5" y="0" width="1" height="20" />
+                      <rect x="7" y="0" width="3" height="20" />
+                      <rect x="11" y="0" width="1" height="20" />
+                      <rect x="13" y="0" width="1" height="20" />
+                      <rect x="15" y="0" width="2" height="20" />
+                      <rect x="18" y="0" width="4" height="20" />
+                      <rect x="23" y="0" width="1" height="20" />
+                      <rect x="25" y="0" width="2" height="20" />
+                      <rect x="28" y="0" width="1" height="20" />
+                      <rect x="30" y="0" width="3" height="20" />
+                      <rect x="34" y="0" width="1" height="20" />
+                      <rect x="36" y="0" width="2" height="20" />
+                      <rect x="39" y="0" width="4" height="20" />
+                      <rect x="44" y="0" width="1" height="20" />
+                      <rect x="46" y="0" width="1" height="20" />
+                      <rect x="48" y="0" width="2" height="20" />
+                      <rect x="51" y="0" width="3" height="20" />
+                      <rect x="55" y="0" width="1" height="20" />
+                      <rect x="57" y="0" width="2" height="20" />
+                      <rect x="60" y="0" width="4" height="20" />
+                      <rect x="65" y="0" width="1" height="20" />
+                      <rect x="67" y="0" width="1" height="20" />
+                      <rect x="69" y="0" width="3" height="20" />
+                      <rect x="73" y="0" width="2" height="20" />
+                      <rect x="76" y="0" width="1" height="20" />
+                      <rect x="78" y="0" width="4" height="20" />
+                      <rect x="83" y="0" width="1" height="20" />
+                      <rect x="85" y="0" width="2" height="20" />
+                      <rect x="88" y="0" width="1" height="20" />
+                      <rect x="90" y="0" width="3" height="20" />
+                      <rect x="94" y="0" width="2" height="20" />
+                      <rect x="97" y="0" width="1" height="20" />
+                      <rect x="99" y="0" width="1" height="20" />
+                    </svg>
+                    <span className="text-[9px] font-mono text-slate-500 tracking-[0.25em] block mt-1.5">
+                      *BK-{confirmedBooking.id}-{confirmedBooking.date.replace(/-/g, '')}*
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="flex gap-4 mt-6 no-print font-sans">
+              <Button
+                onClick={handlePrint}
+                variant="outline"
+                className="flex-1 border-slate-600 text-white hover:bg-slate-700 h-11 text-sm font-semibold"
+              >
+                <svg className="w-4 h-4 mr-2 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-3a2 2 0 00-2-2H9a2 2 0 00-2 2v3a2 2 0 002 2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14" />
+                </svg>
+                Download Ticket
+              </Button>
+              <Button
+                onClick={() => {
+                  setConfirmedBooking(null)
+                  setSelectedDate(null)
+                  setFormData({ name: '', phone: '', email: '', time: '', service: '', notes: '' })
+                }}
+                className="flex-1 bg-amber-600 hover:bg-amber-700 text-white h-11 text-sm font-semibold"
+              >
+                Book Another
+              </Button>
+            </div>
+          </div>
+        ) : !selectedDate ? (
           // Calendar View
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div className="lg:col-span-2">
@@ -305,7 +527,7 @@ export default function BookingsPage() {
                       const capacity = slotsConfig[dateStr] ?? defaultCapacity
                       const bookedCount = bookings.filter((b) => b.date === dateStr && b.status !== 'Cancelled').length
                       const slots = Math.max(0, capacity - bookedCount)
-                      
+
                       const isToday = new Date().toDateString() === dateObj.toDateString()
                       const todayMidnight = new Date()
                       todayMidnight.setHours(0, 0, 0, 0)
@@ -316,15 +538,14 @@ export default function BookingsPage() {
                           key={day}
                           onClick={() => !isPast && capacity > 0 && slots > 0 && handleDateSelect(day)}
                           disabled={isPast || capacity === 0 || slots === 0}
-                          className={`aspect-square rounded-lg font-semibold transition flex flex-col items-center justify-center p-2 text-sm ${
-                            isPast
+                          className={`aspect-square rounded-lg font-semibold transition flex flex-col items-center justify-center p-2 text-sm ${isPast
                               ? 'bg-slate-700/30 text-slate-600 cursor-not-allowed'
                               : capacity === 0
-                              ? 'bg-slate-800/40 text-slate-500 border border-slate-700/50 cursor-not-allowed'
-                              : slots === 0
-                              ? 'bg-red-900/40 text-red-300 border border-red-600 hover:bg-red-900/60'
-                              : 'bg-amber-600 text-white hover:bg-amber-700 border-2 border-amber-500'
-                          }`}
+                                ? 'bg-slate-800/40 text-slate-500 border border-slate-700/50 cursor-not-allowed'
+                                : slots === 0
+                                  ? 'bg-red-900/40 text-red-300 border border-red-600 hover:bg-red-900/60'
+                                  : 'bg-amber-600 text-white hover:bg-amber-700 border-2 border-amber-500'
+                            }`}
                         >
                           <div className="text-base">{day}</div>
                           <div className={`hidden sm:block text-xs ${isPast ? 'text-slate-600' : capacity === 0 ? 'text-slate-500' : slots === 0 ? 'text-red-300' : 'text-amber-100'}`}>
