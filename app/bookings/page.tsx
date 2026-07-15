@@ -636,7 +636,7 @@ export default function BookingsPage() {
                           name="name"
                           value={formData.name}
                           onChange={handleChange}
-                          placeholder="John Doe"
+                          placeholder="Big Mike"
                           required
                           className="bg-slate-700 border-slate-600 text-white placeholder:text-slate-500 py-2.5"
                         />
@@ -649,7 +649,7 @@ export default function BookingsPage() {
                           type="email"
                           value={formData.email}
                           onChange={handleChange}
-                          placeholder="john@example.com"
+                          placeholder="bigmike01@example.com"
                           required
                           className="bg-slate-700 border-slate-600 text-white placeholder:text-slate-500 py-2.5"
                         />
