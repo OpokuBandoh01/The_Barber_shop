@@ -19,13 +19,7 @@ export default function Home() {
           </Link>
           <div className="flex gap-3 items-center">
             <ThemeToggle />
-            <Link href="/admin" className="hidden sm:inline-flex items-center justify-center rounded-md text-sm font-semibold h-10 px-4 py-2 border border-slate-600 text-white hover:bg-slate-700 transition-colors">
-              Admin Portal
-            </Link>
-            <Link href="/admin" className="sm:hidden inline-flex items-center justify-center rounded-md w-10 h-10 border border-slate-700/50 bg-slate-800/40 hover:bg-slate-700/50 text-slate-300 hover:text-white transition-colors" title="Admin Portal">
-              <Lock className="w-4 h-4" />
-            </Link>
-            <Link href="/queue" className="hidden sm:inline-flex items-center justify-center rounded-md text-sm font-semibold h-10 px-4 py-2 border border-slate-600 text-white hover:bg-slate-700 transition-colors">
+            <Link href="/queue" className="inline-flex items-center justify-center rounded-md text-sm font-semibold h-10 px-4 py-2 border border-slate-600 text-white hover:bg-slate-700 transition-colors">
               View Queue
             </Link>
           </div>

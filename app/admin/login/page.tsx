@@ -57,8 +57,7 @@ export default function AdminLoginPage() {
 
       const data = await res.json()
       if (res.ok && data.success) {
-        router.push('/admin')
-        router.refresh()
+        window.location.href = '/admin'
       } else {
         setError(data.error || 'Invalid email or password.')
       }
@@ -90,11 +89,7 @@ export default function AdminLoginPage() {
 
       const data = await res.json()
       if (res.ok && data.success) {
-        setSuccessMessage('Administrator registered successfully! Please sign in with your credentials.')
-        setName('')
-        setPassword('')
-        setConfirmPassword('')
-        setSetupRequired(false)
+        window.location.href = '/admin'
       } else {
         setError(data.error || 'Registration failed. Please try again.')
       }

@@ -761,7 +761,7 @@ export default function BookingsPage() {
                       <span className="font-semibold text-white">
                         {(() => {
                           const s = services.find(s => s.id === formData.service)
-                          return s ? `${s.name} - GH₵{s.price}` : ''
+                          return s ? `${s.name} - GH₵${s.price}` : ''
                         })()}
                       </span>
                     </div>

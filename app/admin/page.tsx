@@ -129,8 +129,7 @@ export default function AdminDashboard() {
     try {
       const res = await fetch('/api/admin/logout', { method: 'POST' })
       if (res.ok) {
-        router.push('/')
-        router.refresh()
+        window.location.href = '/'
       } else {
         alert('Failed to logout')
       }
