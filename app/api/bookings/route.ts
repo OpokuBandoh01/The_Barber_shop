@@ -25,14 +25,16 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const data = await request.json()
-    const { name, phone, email, date, time, service, notes, paymentReference } = data
+    const { name, phone, email, date, time, service, notes, paymentReference, status } = data
 
     if (!name || !phone || !email || !date || !time || !service) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
 
+    const isPending = status === 'Pending'
+
     // Paystack payment verification
-    if (paymentReference !== 'walk-in') {
+    if (paymentReference !== 'walk-in' && !isPending) {
       if (!paymentReference) {
         return NextResponse.json({ error: 'Payment reference is required for online booking' }, { status: 400 })
       }
@@ -89,7 +91,7 @@ export async function POST(request: Request) {
       time,
       service,
       notes: notes || '',
-      status: 'Confirmed',
+      status: isPending ? 'Pending' : 'Confirmed',
       paymentReference: paymentReference || null,
     }).returning()
 

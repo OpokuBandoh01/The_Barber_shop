@@ -132,56 +132,78 @@ export default function BookingsPage() {
         return
       }
 
+      const paymentReference = `bk_${Date.now()}_${Math.floor(Math.random() * 1000)}`
+
       try {
+        // 1. Pre-save booking as Pending in the database
+        const res = await fetch('/api/bookings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: formData.name,
+            phone: formData.phone,
+            email: formData.email,
+            date: selectedDate,
+            time: formData.time,
+            service: formData.service,
+            notes: formData.notes,
+            paymentReference,
+            status: 'Pending'
+          }),
+        })
+
+        if (!res.ok) {
+          const errData = await res.json()
+          alert(errData.error || 'Failed to initialize booking details')
+          return
+        }
+
+        const pendingBooking = await res.json()
+
+        // 2. Open Paystack payment checkout
         const paystack = new (window as any).PaystackPop()
         paystack.newTransaction({
           key: process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY,
           email: formData.email,
           amount: price * 100, // converted to smallest currency unit (pesewas)
           currency: 'GHS',
-          ref: `bk_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
+          ref: paymentReference,
           onSuccess: (transaction: any) => {
-            handleSaveBooking(transaction.reference)
+            handleConfirmBooking(pendingBooking.id)
           },
           onCancel: () => {
-            alert('Payment checkout window closed.')
+            alert('Payment checkout window closed. Your booking is saved as Pending. You can complete payment later or consult the barber.')
           }
         })
       } catch (error) {
-        console.error('Error initializing Paystack:', error)
-        alert('Failed to initialize payment gateway')
+        console.error('Error during checkout initialization:', error)
+        alert('An error occurred during checkout setup. Please try again.')
       }
     }
   }
 
-  const handleSaveBooking = async (paymentReference: string) => {
+  const handleConfirmBooking = async (bookingId: number) => {
     try {
-      const res = await fetch('/api/bookings', {
+      const res = await fetch('/api/bookings/status', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          name: formData.name,
-          phone: formData.phone,
-          email: formData.email,
-          date: selectedDate,
-          time: formData.time,
-          service: formData.service,
-          notes: formData.notes,
-          paymentReference,
+          id: bookingId,
+          status: 'Confirmed',
         }),
       })
 
       if (res.ok) {
-        const newBooking = await res.json()
-        setBookings(prev => [...prev, newBooking])
-        setConfirmedBooking(newBooking)
+        const confirmed = await res.json()
+        setBookings(prev => prev.map(b => b.id === bookingId ? confirmed : b))
+        setConfirmedBooking(confirmed)
       } else {
         const errData = await res.json()
-        alert(errData.error || 'Failed to submit booking')
+        alert(errData.error || 'Failed to confirm booking payment')
       }
     } catch (error) {
-      console.error('Error submitting booking:', error)
-      alert('An error occurred. Please try again.')
+      console.error('Error confirming booking payment:', error)
+      alert('An error occurred while confirming your payment. Please contact the administrator.')
     }
   }
 

@@ -11,7 +11,7 @@ import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import {
   Trash2, Plus, Edit2, Save, X, TrendingUp, Calendar, Clock, Scissors,
-  DollarSign, Users, CheckCircle, AlertTriangle, HelpCircle, UserPlus, LogOut
+  Users, CheckCircle, AlertTriangle, HelpCircle, UserPlus, LogOut
 } from 'lucide-react'
 import {
   seedLocalStorage, defaultServices, defaultTimeSlots, type Booking, type Service
@@ -387,27 +387,33 @@ export default function AdminDashboard() {
     }
   }
 
-  // --- ANALYTICS CALCULATIONS (FOR JUNE 2026 MOCK DATA) ---
-  const juneBookings = bookings.filter(b => b.date.startsWith('2026-06'))
-  const juneActiveBookings = juneBookings.filter(b => b.status !== 'Cancelled')
-  const juneCompleted = juneBookings.filter(b => b.status === 'Completed')
+  // --- DYNAMIC ANALYTICS CALCULATIONS ---
+  const displayDateObj = selectedDate ? new Date(selectedDate) : new Date()
+  const currentYear = displayDateObj.getFullYear()
+  const currentMonthNum = displayDateObj.getMonth() + 1
+  const currentMonthYearStr = `${currentYear}-${String(currentMonthNum).padStart(2, '0')}`
+  const currentMonthName = displayDateObj.toLocaleString('en-US', { month: 'long' })
+  const totalDaysInMonth = new Date(currentYear, currentMonthNum, 0).getDate()
+
+  const currentMonthBookings = bookings.filter(b => b.date.startsWith(currentMonthYearStr))
+  const currentMonthActiveBookings = currentMonthBookings.filter(b => b.status !== 'Cancelled')
+  const currentMonthCompleted = currentMonthBookings.filter(b => b.status === 'Completed')
 
   // Overall statistics
-  const totalBookingsCount = analyticsScope === 'month' ? juneBookings.length : dateBookings.length
-  const activeBookingsCount = analyticsScope === 'month' ? juneActiveBookings.length : activeBookings.length
+  const totalBookingsCount = analyticsScope === 'month' ? currentMonthBookings.length : dateBookings.length
+  const activeBookingsCount = analyticsScope === 'month' ? currentMonthActiveBookings.length : activeBookings.length
 
-  const revenue = (analyticsScope === 'month' ? juneBookings : dateBookings)
+  const revenue = (analyticsScope === 'month' ? currentMonthBookings : dateBookings)
     .filter(b => b.status === 'Completed' || b.status === 'Confirmed')
     .reduce((sum, b) => sum + getBookingPrice(b.service), 0)
 
   const averageTicket = activeBookingsCount > 0 ? Math.round(revenue / activeBookingsCount) : 0
 
   // Month-wide occupancy calculation
-  const totalDaysInJune = 30
   let totalAllocatedCapacity = 0
   let totalBookedSlots = 0
-  for (let day = 1; day <= totalDaysInJune; day++) {
-    const dateStr = `2026-06-${day.toString().padStart(2, '0')}`
+  for (let day = 1; day <= totalDaysInMonth; day++) {
+    const dateStr = `${currentMonthYearStr}-${day.toString().padStart(2, '0')}`
     const cap = getCapacityForDate(dateStr)
     const booked = bookings.filter(b => b.date === dateStr && b.status !== 'Cancelled').length
     totalAllocatedCapacity += cap
@@ -417,16 +423,16 @@ export default function AdminDashboard() {
   const displayOccupancy = analyticsScope === 'month' ? averageOccupancy : occupancyRate
 
   // Recharts: Daily Revenue Chart data
-  const chartDailyData = Array.from({ length: 25 }, (_, i) => {
+  const chartDailyData = Array.from({ length: totalDaysInMonth }, (_, i) => {
     const day = i + 1
-    const dateStr = `2026-06-${day.toString().padStart(2, '0')}`
+    const dateStr = `${currentMonthYearStr}-${day.toString().padStart(2, '0')}`
     const dayBookings = bookings.filter(b => b.date === dateStr && b.status !== 'Cancelled')
     const dayRevenue = dayBookings
       .filter(b => b.status === 'Completed' || b.status === 'Confirmed')
       .reduce((sum, b) => sum + getBookingPrice(b.service), 0)
 
     return {
-      day: `June ${day}`,
+      day: `${currentMonthName.slice(0, 3)} ${day}`,
       Revenue: dayRevenue,
       Bookings: dayBookings.length
     }
@@ -434,7 +440,7 @@ export default function AdminDashboard() {
 
   // Recharts: Service popularity data
   const chartServiceData = services.map(s => {
-    const currentScopeBookings = analyticsScope === 'month' ? juneBookings : dateBookings
+    const currentScopeBookings = analyticsScope === 'month' ? currentMonthBookings : dateBookings
     const count = currentScopeBookings.filter(b => b.service === s.id && b.status !== 'Cancelled').length
     return {
       name: s.name,
@@ -445,7 +451,7 @@ export default function AdminDashboard() {
 
   // Recharts: Time slots distribution data
   const chartTimeData = timeSlots.map(slot => {
-    const currentScopeBookings = analyticsScope === 'month' ? juneBookings : dateBookings
+    const currentScopeBookings = analyticsScope === 'month' ? currentMonthBookings : dateBookings
     const count = currentScopeBookings.filter(b => b.time === slot && b.status !== 'Cancelled').length
     return {
       time: slot,
@@ -552,7 +558,7 @@ export default function AdminDashboard() {
               <div>
                 <h2 className="text-xl font-bold text-slate-200">Business Progress Dashboard</h2>
                 <p className="text-slate-400 text-xs mt-0.5">
-                  Analyzing {analyticsScope === 'month' ? 'Full Month (June 2026)' : `Selected Day (${selectedDate})`}
+                  Analyzing {analyticsScope === 'month' ? `Full Month (${currentMonthName} ${currentYear})` : `Selected Day (${selectedDate})`}
                 </p>
               </div>
               <div className="flex gap-2 w-full sm:w-auto">
@@ -570,7 +576,7 @@ export default function AdminDashboard() {
                   className={`flex-1 sm:flex-none ${analyticsScope === 'month' ? 'bg-amber-600 hover:bg-amber-700' : 'border-slate-700 text-white'}`}
                   size="sm"
                 >
-                  June Overview
+                  Month Overview
                 </Button>
               </div>
             </div>
@@ -588,7 +594,7 @@ export default function AdminDashboard() {
                       </p>
                     </div>
                     <div className="p-3 bg-emerald-500/10 text-emerald-400 rounded-lg">
-                      <DollarSign className="w-5 h-5" />
+                      <TrendingUp className="w-5 h-5" />
                     </div>
                   </div>
                 </CardContent>
@@ -652,7 +658,7 @@ export default function AdminDashboard() {
               {/* Daily Revenue Progress (Span 2 columns if month view) */}
               <Card className={`bg-slate-800 border-slate-700 shadow-xl lg:col-span-2 ${analyticsScope !== 'month' && 'opacity-50 pointer-events-none'}`}>
                 <CardHeader>
-                  <CardTitle className="text-base font-semibold text-slate-200">Daily Revenue Progression (June 2026)</CardTitle>
+                  <CardTitle className="text-base font-semibold text-slate-200">{`Daily Revenue Progression (${currentMonthName} ${currentYear})`}</CardTitle>
                   <CardDescription className="text-slate-400 text-xs">
                     {analyticsScope === 'month' ? 'Real-time sales tracking over the calendar month' : 'Only available in Month Overview'}
                   </CardDescription>
